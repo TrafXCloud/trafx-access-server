@@ -1,0 +1,29 @@
+# TrafX Access Server (SOCKS5 / HTTP / HTTPS proxy + ocserv) on a plain Linux server.
+# By TrafX Cloud - https://trafx.cloud - https://t.me/trafxcloud
+#
+#   cp env.example .env   # fill it in
+#   sysctl -w net.ipv4.ip_forward=1 && echo net.ipv4.ip_forward=1 > /etc/sysctl.d/90-trafx.conf
+#   docker compose up -d && docker compose logs -f
+#
+# Host network: the ports below are opened on the server itself, and ocserv's
+# NAT rules go into the host's iptables (OCSERV_NAT=1).
+services:
+  trafx:
+    image: ${TRAFX_IMAGE:-ghcr.io/trafxcloud/trafx-access-server:ocserv}
+    container_name: trafx
+    network_mode: host
+    restart: unless-stopped
+    cap_add: [NET_ADMIN]
+    devices: ["/dev/net/tun:/dev/net/tun"]
+    env_file: .env
+    environment:
+      OCSERV_NAT: "1"
+    volumes:
+      - ./data:/data
+    # Users get their Stops and the panel an Accounting-Off before the kill.
+    stop_grace_period: 30s
+    ulimits:
+      nofile: 1048576
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
